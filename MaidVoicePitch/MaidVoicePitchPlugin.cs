@@ -37,6 +37,13 @@ namespace CM3D2.MaidVoicePitch.Plugin
         /// ボーン名に?が含まれるとLとRに置換されます。
         /// 頭に影響が行くボーンを登録する場合は
         /// WIDESLIDER() 内の ignoreHeadBones にボーン名を書くこと。
+        
+        /// Transform 변형을 할 뼈의 목록입니다.
+        /// 여기에 써두면 자동으로 BoneMorph에 등록 된 Transform 처리됩니다.
+        /// string []의 내용은 { "본 이름", "ExSave 속성 이름"}
+        /// 본 이름?이 포함되면 L과 R로 대체됩니다.
+        /// 머리에 영향이가는 뼈를 등록하는 경우
+        /// WIDESLIDER ()의 ignoreHeadBones에 본 이름을 작성합니다.
         /// </summary>
          private string[][] boneAndPropNameList = new string[][]
         {
@@ -82,7 +89,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
         {
             KagHooks.SetHook(PluginName, true);
 
-            // TBody.MoveHeadAndEye 処理終了後のコールバック
+            // TBody.MoveHeadAndEye 処理終了後のコールバック 처리 후 콜백
             CM3D2.MaidVoicePitch.Managed.Callbacks.TBody.MoveHeadAndEye.Callbacks[PluginName] = tbodyMoveHeadAndEyeCallback;
 
             // BoneMorph_.Blend 処理終了後のコールバック
@@ -129,6 +136,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
             //PluginHelper.LineClear();
             PluginHelper.DebugClear();
             // テンプレートキャッシュを消去して、再読み込みを促す
+            // 템플릿 캐시를 지우고 다시로드 촉구
             if (Input.GetKey(KeyCode.F12))
             {
                 FaceScriptTemplates.Clear();
@@ -137,6 +145,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
             SliderTemplates.Update(PluginName);
 
             // エディット画面にいる場合は特別処理として毎フレームアップデートを行う
+            // 편집 화면에있는 경우 특별 처리로 매 프레임 업데이트하기
             if (Application.loadedLevel == 5)
             {
                 if (GameMain.Instance != null && GameMain.Instance.CharacterMgr != null)
@@ -151,7 +160,9 @@ namespace CM3D2.MaidVoicePitch.Plugin
                 // todo 以下を直すこと：
                 //      FARMFIX等のスライダーではないトグル操作等を行った場合にコールバックが
                 //      呼ばれていない。これを回避するため、とりあえず毎フレーム呼びだすことにする
-                //
+// todo 다음을 치유 할 :
+     // FARMFIX 등의 슬라이더가 아닌 토글 조작 등을 한 경우에 콜백
+    // 불리고있다. 이를 방지하기 위해 우선 매 프레임 호출 할하기
                 MaidVoicePitch_UpdateSliders();
             }
         }
@@ -161,6 +172,10 @@ namespace CM3D2.MaidVoicePitch.Plugin
         /// 初期化、設定変更時のみ呼び出される。
         /// ボーンのブレンド処理が行われる際、拡張スライダーに関連する補正は基本的にここで行う。
         /// 毎フレーム呼び出されるわけではないことに注意
+/// BoneMorph_.Blend 처리 종료 후에 불리는 콜백.
+    /// 초기화 설정 변경시에만 호출된다.
+    /// 본 혼합 처리 할 때 확장 슬라이더 관련 보정은 기본적으로 여기에서한다.
+    ///마다 프레임 호출하는 것은 아닌 것에주의
         /// </summary>
         void boneMorph_BlendCallback(BoneMorph_ boneMorph_)
         {
@@ -176,6 +191,8 @@ namespace CM3D2.MaidVoicePitch.Plugin
         /// <summary>
         /// TBody.MoveHeadAndEye の処理終了後に呼ばれるコールバック
         ///  表示されている間は毎フレーム呼び出される
+/// TBody.MoveHeadAndEye 처리 종료 후에 불리는 콜백
+    /// 표시되어있는 동안은 매 프레임 호출되는
         /// </summary>
         void tbodyMoveHeadAndEyeCallback(TBody tbody)
         {
@@ -240,7 +257,13 @@ namespace CM3D2.MaidVoicePitch.Plugin
                         //	続けて２人目をエディットしようとすると、１人目のメイドの
                         //	boneMorphLocal.linkT が null になっていて例外がおきるので
                         //	あらかじめ linkT を調べる
-                        //
+                        
+// todo 정말이 방법 밖에 없는지 알아낼 수
+     //
+    // 1 번째 메이드을 편집하고 관리 화면으로 돌아가
+     // 계속 2 눈길을 편집하려고하면 1 번째 만든
+    // boneMorphLocal.linkT가 null되어 예외가 일어나므로
+    // 미리 linkT을 조사
                         bool safe = true;
                         foreach (BoneMorphLocal boneMorphLocal in maid.body0.bonemorph.bones)
                         {
@@ -269,6 +292,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
 
         /// <summary>
         /// エディットシーン用の状態更新
+        // 에디트 장면의 상태 업데이트
         /// </summary>
         void EditSceneMaidUpdate(Maid maid)
         {
@@ -286,11 +310,13 @@ namespace CM3D2.MaidVoicePitch.Plugin
             else
             {
                 // エディットシーンではリップシンクを強制的に復活させる
+                // 편집 장면에서 립싱크를 강제로 부활
                 Helper.SetInstanceField(typeof(Maid), maid, "m_bFoceKuchipakuSelfUpdateTime", false);
             }
         }
 
         // 目を常時カメラに向ける
+        // 눈을 항상 카메라 조준
         void EyeToCam(Maid maid, TBody tbody)
         {
             float fEyeToCam = ExSaveData.GetFloat(maid, PluginName, "EYETOCAM", 0f);
@@ -305,6 +331,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
         }
 
         // 顔を常時カメラに向ける
+        // 얼굴을 항상 카메라 조준
         void HeadToCam(Maid maid, TBody tbody)
         {
             float fHeadToCam = ExSaveData.GetFloat(maid, PluginName, "HEADTOCAM", 0f);
@@ -319,6 +346,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
         }
 
         // まばたき制限
+        // 윙크 제한
         void Mabataki(Maid maid)
         {
             float mabatakiVal = (float)Helper.GetInstanceField(typeof(Maid), maid, "MabatakiVal");
@@ -446,6 +474,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
         }
 
         // スライダー範囲を拡大
+        // 슬라이더 범위를 확대
         void WideSlider(Maid maid)
         {
             if (!ExSaveData.GetBool(maid, PluginName, "WIDESLIDER", false))
@@ -462,13 +491,17 @@ namespace CM3D2.MaidVoicePitch.Plugin
             BoneMorph_ boneMorph_ = tbody.bonemorph;
 
             // スケール変更するボーンのリスト
+            // 크기 조정하는 본 목록
             Dictionary<string, Vector3> boneScale = new Dictionary<string, Vector3>();
             
             // ポジション変更するボーンのリスト
+            // 포지션 변경 본 목록
             Dictionary<string, Vector3> bonePosition = new Dictionary<string, Vector3>();
 
             //この配列に記載があるボーンは頭に影響を与えずにTransformを反映させる。
             //ただしボディに繋がっている中のアレは影響を受ける。
+            //이 배열에 기재되어있는 뼈는 머리에 영향을주지 않고 Transform를 반영한다.
+            // 그러나 몸에 연결되어있는 가운데 균열은 영향을 받는다.
             string[] ignoreHeadBones = new string[] { "Bip01 Spine1a" };
 
             float eyeAngAngle;
@@ -518,6 +551,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
             }
             bonePosition["Skirt"] = skirtPos;
 
+            // 가슴 부분
             Vector3 muneSubPosL;
             Vector3 muneSubPosR;
             {
@@ -543,6 +577,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
             bonePosition["Mune_R"] = munePosR;
 
             // スケール変更するボーンをリストに一括登録
+            // 크기 조정하는 뼈를 목록에 일괄 등록
             SetBoneScaleFromList(boneScale, maid, boneAndPropNameList);
 
             Transform tEyePosL = null;
@@ -644,18 +679,21 @@ namespace CM3D2.MaidVoicePitch.Plugin
                 }
 
                 // リストに登録されているボーンのスケール設定
+                // 목록에 등록되어있는 뼈의 규모 설정
                 if (name != null && boneScale.ContainsKey(name))
                 {
                     scl = Vector3.Scale(scl, boneScale[name]);
                 }
 
                 // リストに登録されているボーンのポジション設定
+                // 목록에 등록되어있는 뼈의 위치 설정
                 if (name != null && bonePosition.ContainsKey(name))
                 {
                     pos += bonePosition[name];
                 }
 
                 // ignoreHeadBonesに登録されている場合はヒラエルキーを辿って頭のツリーを無視
+                // ignoreHeadBones에 등록되어있는 경우 히라에루키을 더듬어 머리 트리를 무시
                 if (name != null && !(ignoreHeadBones.Contains(name) && getHiraerchy(linkT).Contains("_BO_body001/Bip01")))
                 {
                     linkT.localScale = scl;
@@ -676,6 +714,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
             }
 
             // 目のサイズ・角度変更
+            // 눈의 크기 · 각도 변경
             // EyeScaleRotate : 目のサイズと角度変更する CM3D.MaidVoicePich.Plugin.cs の追加メソッド
             // http://pastebin.com/DBuN5Sws
             // その１>>923
@@ -683,7 +722,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
             if (tEyePosL != null)
             {
                 Transform linkT = tEyePosL;
-                Vector3 localCenter = linkT.localPosition + (new Vector3(0f, eyeAngY, eyeAngX)); // ローカル座標系での回転中心位置
+                Vector3 localCenter = linkT.localPosition + (new Vector3(0f, eyeAngY, eyeAngX)); // ローカル座標系での回転中心位置 로컬 좌표계의 회전 중심 위치
                 Vector3 worldCenter = linkT.parent.TransformPoint(localCenter);         // ワールド座標系での回転中心位置
                 Vector3 localAxis = new Vector3(-1f, 0f, 0f);                       // ローカル座標系での回転軸
                 Vector3 worldAxis = linkT.TransformDirection(localAxis);               // ワールド座標系での回転軸
@@ -710,6 +749,9 @@ namespace CM3D2.MaidVoicePitch.Plugin
             {
                     if (item[0].Contains("?"))
                     {
+                    // 예상되는 에러 부분
+                    // Kata_R의 서브는 Kata_R_nub
+                    // Mune_R의 서브는 Mune_R_sub
                         string boneNameL = item[0].Replace('?', 'L');
                         string boneNameR = item[0].Replace('?', 'R');
                         SetBoneScale(dictionary, boneNameL, maid, item[1]);
@@ -750,6 +792,7 @@ namespace CM3D2.MaidVoicePitch.Plugin
 
 
         // 動作していない古い設定を削除する
+        // 작동하지 않는 이전 설정을 삭제하려면
         static void CleanupExSave()
         {
             string[] obsoleteSettings = {
